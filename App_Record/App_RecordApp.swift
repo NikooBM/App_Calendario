@@ -6,27 +6,39 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct App_RecordApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+    @StateObject private var subscriptionService = SubscriptionService()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showingSplash = true
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ZStack {
+                if showingSplash {
+                    SplashScreenView()
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+                
+                Group {
+                    if !hasCompletedOnboarding {
+                        WelcomeView()
+                    } else {
+                        ContentView()
+                            .environmentObject(subscriptionService)
+                    }
+                }
+                .zIndex(0)
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    withAnimation {
+                        showingSplash = false
+                    }
+                }
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 }
